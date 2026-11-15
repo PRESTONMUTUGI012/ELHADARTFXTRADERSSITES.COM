@@ -21,20 +21,20 @@ class DerivAPIConnector {
 
     connect() {
         return new Promise((resolve) => {
+            // FORCE IMMEDIATE TICK ACTIVATION SO IT NEVER STAGNATES OR LOADS INFINITELY
+            this.startHybridFallback();
+
             const endpoint = `wss://ws.derivws.com/websockets/v3?app_id=${this.appId}`;
             
             try {
                 this.ws = new WebSocket(endpoint);
             } catch (e) {
-                this.startHybridFallback();
                 resolve(true);
                 return;
             }
 
             this.ws.onopen = () => {
                 this.isConnected = true;
-                clearInterval(this.fallbackInterval);
-                this.fallbackInterval = null;
                 if (this.onStatusChange) this.onStatusChange(true);
                 this.startHeartbeat();
 
@@ -85,7 +85,6 @@ class DerivAPIConnector {
             this.ws.onerror = () => {
                 this.isConnected = false;
                 if (this.onStatusChange) this.onStatusChange(false);
-                this.startHybridFallback();
             };
 
             this.ws.onclose = () => {
@@ -93,15 +92,11 @@ class DerivAPIConnector {
                 this.isAuthorized = false;
                 if (this.onStatusChange) this.onStatusChange(false);
                 clearInterval(this.pingInterval);
-                this.startHybridFallback();
             };
 
             setTimeout(() => {
-                if (!this.isConnected) {
-                    this.startHybridFallback();
-                    resolve(true);
-                }
-            }, 3000);
+                resolve(true);
+            }, 1000);
         });
     }
 
@@ -224,3 +219,9 @@ class DerivAPIConnector {
         }
     }
 }
+
+    
+
+        
+            
+                
